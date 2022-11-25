@@ -8,18 +8,32 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Component;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Component
+@Slf4j
 public class KListener {
 
-    @RetryableTopic(attempts = "3", backoff = @Backoff(delay = 5000, multiplier = 3.0))
-    @KafkaListener(topics = "quickstart",
-            groupId = "group_id",
-            containerFactory = "myConsumerFactory")
-    public void consume(String msg, @Header(KafkaHeaders.RECEIVED_TOPIC) String topic) {
+    @RetryableTopic(attempts = "2", backoff = @Backoff(delay = 60000), autoCreateTopics = "true", autoStartDltHandler="false")    //backoff = @Backoff(delay = 5000, multiplier = 3.0),
+    @KafkaListener(topics = "mdsg_sg_obs_eidv_checks",groupId = "eidv_check_consumers") // ,containerFactory = "vConsumerFactory"
+    public void consume(String msg, @Header(KafkaHeaders.RECEIVED_TOPIC) String topic) throws Exception{
 
-        System.out.println(msg +" from "+topic);
+        log.info("==============================================================");
+        log.info("topic name : {}", topic);
+        log.info("consumed message is : {}", msg);
 
-        int x = Integer.parseInt(msg);
+        if(msg.contains("STILL_PROCESSING")){
+            // if("mdsg_sg_obs_eidv_checks".equals(topic)){
+                log.info("This Message \"{}\"has to be reprocessed again.", msg);
+                throw new Exception("This Message has to be reprocessed again.");
+            // }else {
+            //     log.info("Processed on REATTEMPT...You see I got this msg from retry topic ....\nI understand this Demo sucks...But, this is what I wanted to show lah! :)", msg);
+            // }
+            
+        }
+
+        log.info("msg consumed successfully...no need to retry this msg : {}", msg);
+        log.info("==============================================================");
 
     }
 
